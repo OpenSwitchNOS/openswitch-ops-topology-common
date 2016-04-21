@@ -1,0 +1,6 @@
+# This is the requirements file for the dev-tools in the package.
+# These requirements are not included in the package that is distributed.
+flake8
+pep8-naming
+pytest
+pytest-cov
