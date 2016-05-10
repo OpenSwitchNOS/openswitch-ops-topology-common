@@ -4,48 +4,73 @@ A library for the Topology Modular Framework that contains code that can be shar
 ## Directory structure
 ```
 .
-|_ setup.py
+|_ MAINTAINERS
 |_ README.md
-|_ ... (other_config_files)
+|_ doc
+    |_ ... (other_doc_files)
 |_ lib
   |_ topology_common
-    |_ __init__.py (python package init file)
-    |_ some_feature
-      |_ __init__.py (feature's specific python package init file)
-      |_ feature_module.py
-    |_ system_common_module.py
+    |_ host
+      |_ system
+        |_ host_common_system_module.py
+    |_ __init__.py (Python package init file)
+    |_ ops
+      |_ __init__.py (feature's specific Python package init file)
+      |_ feature_a
+        |_ feature_module.py
+      |_feature_b
+      |_ system
+        |_ ops_common_system_module.py
+    |_ utils
+      |_ common_utils_module.py
+|_ ... (other_config_files)
+|_ setup.py
 |_ test
-  |_ test_some_feature.py
-  |_ test_system_common_module.py
-  |_ test_other_features.py
+  |_ host
+  |_ ops
+    |_ feature_a
+      |_ test_feature_a_module.py
+  |_ utils
+    |_ test_common_utils_module.py
+
 ```
+
 
 Under the root directory several configuration files such as the `setup.py` script, the `MANIFEST.in`, `requirements.txt` and others can be found.
 
 The most important directories for developers contributing common code are `lib/topology_common/` and `test/` where the production and test code live.
 
+
 ## Production code
 The production code lives in  the `lib/topology_common` directory.
 
 The common code can separated by the following criteria:
-- Is the code specific to a feature? (e.g. VLAN feature code)
-    - Create a sub-directory named after the feature and place the files in it.
-- Is the code generic, meaning can be used largely in all features (e.g. process management related code)?
-    - Place the files directly under `lib/topology_common`
+
+- Is the code specific to a linux host?
+    - Create the files directly under `lib/topology_common/host`
+- Is the code specific to OpenSwitch feature configuration and/or verification?
+    - Create a file named after the feature and place it under `lib/topology_common/ops/<feature_path>`.
+- Is the code generic, meaning can be used largely in all test cases (e.g. create MAC addresses, increment IP)?
+    - Place the files directly under `lib/topology_common/util`
+
 
 Example that contains code for the VLAN feature and common code for process, packet and file management:
 
 ```
 |_ lib
   |_ topology_common
-  |_ __init__.py (python package init file)
-    |_ vlan
+    |_ host
+      |_ file_management.py
+    |_ ops
       |_ __init__.py (feature's specific Python package init file)
-      |_ vlan_db_access.py
-      |_ vlan_management.py
-    |_ process_management.py
-    |_ packet_management.py
-    |_ file_management.py
+      |_ l2
+        |_ vlan
+          |_ vlan_db_access.py
+          |_ vlan_management.py
+        |_ system
+          |_ process_management.py
+    |_ utils
+      |_ packet_management.py
 ```
 
 ** Note:**
@@ -62,11 +87,11 @@ The Topology Common library is built and installed as a Python package for the t
 
 2. Import the modules of interest in the tests, e.g.:
 ```
-from topology_common import service
+from topology_common.ops.system import service
 ```
 or
 ```
-from topology_common.vlan import vlan_db_access
+from topology_common.host import file_management
 ```
 
 3. Use the code in the tests, e.g.:
@@ -77,7 +102,7 @@ from topology_common.vlan import vlan_db_access
 ```
 
 ## Topology Common Code library tests
-The library defines APIs that many tests will be using and depending on. As changes are added to the library, the API may change and dependent tests may break. **As a responsible developer please make sure to add tests along with the library contributions.**
+The library defines APIs that many tests will be using and depending on. As changes are added to the libraries, the API may change and dependent tests may break. **As a responsible developer please make sure to add tests along with the library contributions.**
 
 The test code lives in  the `test/` directory.
 
@@ -86,38 +111,39 @@ The Topology Common library supports `pytest` and `tox`. The tests can be easily
 tox
 ```
 
-The `topology_common\lib` directory is a python package and `tox` is responsible for installing the package when running tests. Hence, in order to access the production code from the test code, simply import the modules.
+The `topology_common\lib` directory is a Python package and `tox` is responsible for installing the package when running tests. Hence, in order to access the production code from the test code, simply import the modules.
 
 Example using the following structure:
 
 ```
 |_ lib
   |_ topology_common
-    |_ vlan
-      |_ __init__.py
-      |_ vlan_db_access.py
-      |_ vlan_packet_management.py
-    |_ process_management.py
-    |_ file_management.py
-|_ test
-  |_ test_vlan.py
+    |_ host
+      |_ file_management.py
+    |_ ops
+      |_ __init__.py (feature's specific Python package init file)
+      |_ l2
+        |_ vlan
+          |_ vlan_db_access.py
+          |_ vlan_management.py
+        |_ system
+          |_ process_management.py
+    |_ utils
+      |_ packet_management.py
 ```
 
 To access the production code from the `test_vlan.py` test file:
 
-For code directly under `topology_common`:
-```
-from topology_common.file_management import create_file, delete_file
-```
-
 For code that's contained in a sub-directory:
 ```
-from topology_common.vlan import vlan_db_access
+from topology_common.ops.l2.vlan import vlan_db_access
 ```
+
 
 ## Contributing to the library
 The following is expected with each contribution:
-1. Follow the coding guidelines defined in the [OPS Modular Framework Library Guidelines](ops-mf-library-guidelines.md) document.
-1. Self-documented code using docstrings.
-1. Tests for every new feature or change to existing features.
-1. All existing tests pass. Verify by running `tox` in the root of the repo before sending for review.
+
+ 1. Follow the coding guidelines defined in the [OPS Modular Framework
+    Library Guidelines](ops-mf-library-guidelines.md) document.
+ 2. Self-documented code using docstrings.
+ 3. Tests for every new feature or change to existing features.

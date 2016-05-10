@@ -4,7 +4,7 @@
 This document contains guidelines for teams working on modular framework libraries. The main intent is to provide solutions for common questions and provide consistency throughout different libraries, which are by nature, emergent, as new projects or improvements generate more testing needs.
 
 ## Code organization
-New library code normally falls in two categories: 1) feature-specific and 2) common. The decision of which functionality belongs to which category is something that should be discussed with the modular framework team point of contact, who will provide guidance (for example, if a given common functionality is already available or being worked on).
+New library code normally falls in two categories: 1) feature-specific and 2) common. The decision of which functionality belongs to which category is something that should be discussed with the feature dev/test team and the common library maintainers, who will provide guidance (for example, if a given common functionality is already available or being worked on).
 
 Feature-specific code should be checked in the feature repo itself, within the tests/component folder and is meant to be maintained by the feature team.
 
@@ -23,9 +23,9 @@ For the organization of code itself, refer to the 'How to' guide.
 1. Prefer parameters vs creating many methods with different names.
     create_vlan(vlan_id=100, mode="access") and create_vlan(vlan_id="100", mode="native")
 
-	vs
+    vs
 
-	create_access_vlan(vlan_id="100") and create_native_vlan(vlan_id=100)
+    create_access_vlan(vlan_id="100") and create_native_vlan(vlan_id=100)
 1. Provide sensible argument defaults which cover most use cases if possible. Ex. create_vlan(vlan_id=100, mode="access", status="no_shutdown")
 1. Action verbs:
   1. **assert**: assert a condition -- no values are returned.
@@ -43,9 +43,9 @@ For the organization of code itself, refer to the 'How to' guide.
   1. **wait_until**: wait for a condition on the system to be met.
         wait_until_port_is_up(port="1")
   1. **send_..._packet**: send a packet.
-		send_mcast_packet(count=10)
+        send_mcast_packet(count=10)
   1. **set**: set an entity value.
-		set_vlan_state(state="down")
+        set_vlan_state(state="down")
 1. If the step fixture object is needed as an argument, it should always be the last argument with default value of 'None'.
         send_mcast_packet(count=1, step=step)
 1. Common functions should invoke the step() call internally if possible. This helps with keeping text consistent and reduces retyping
@@ -63,26 +63,49 @@ The following examples illustrate the guidelines in practice, along with design 
     Modular Framework Process Information Library
     """
 
-    def assert_process_is_running(switch, process_name, step=None):
-		"""Assert a process is running"""
+    def assert_process_is_running(node, process_name, step=None):
+        """Assert a process is running"""
 
         if step is not None:
             step("### Assert {process_name} is running ###".format(**locals()))
 
         cmd = "systemctl status %s" % (process_name)
-        cmd_output = switch(cmd, shell="bash")
+        cmd_output = node(cmd, shell="bash")
         lines = output.split("\n")
 
         assert "active" in lines[2]
 
-    def get_process_pid(switch, process_name):
-		"""Get a service's process ID (PID)"""
+    def get_process_pid(node, process_name):
+        """Get a service's process ID (PID)"""
 
         cmd = "systemctl show %s --property=MainPID" % (process_name)
-        cmd_output = switch(cmd, shell="bash")
+        cmd_output = node(cmd, shell="bash")
         lines = cmd_output.strip().split("=")
 
         return lines[1]
+
+#### VLAN
+    [vlan.py]
+    <license_text>
+    """
+    Modular Framework OPS VLAN Management Library
+    """
+
+    def create_vlan_interface(node, vlan_id, ip_address):
+        """ Configure VLAN interface using libvtysh
+
+        Arguments:
+        node -- A modular framework node object that supports the vty shell
+        vlan_id -- VLAN ID for interface to be configured
+        ip_address -- IP address to configure on interface
+        """
+
+        with node.libs.vtysh.ConfigVlan(vlan_id) as ctx:
+            ctx.no_shutdown()
+
+        with node.libs.vtysh.ConfigInterfaceVlan(vlan_id) as ctx:
+            ctx.ip_address(ip_address)
+            ctx.no_shutdown()
 
 #### Usage
     [test_restd_starts_on_boot.py]
@@ -91,7 +114,8 @@ The following examples illustrate the guidelines in practice, along with design 
     Component Test: Process Information library usage example
     """
 
-    from . import process_information
+    from topology_common.ops.system import process_information
+    from topology_common.ops.l2.vlan import vlan
 
     TOPOLOGY = """
     #
@@ -109,4 +133,6 @@ The following examples illustrate the guidelines in practice, along with design 
 
         assert sw1 is not None
 
-        process_information.assert_process_is_running(switch=sw1, process_name="restd", step=step)
+        vlan.create_vlan_interface(node=sw1, vlan_id=1, ip_address=10.10.10.5/8)
+
+        process_information.assert_process_is_running(node=sw1, process_name="restd", step=step)
