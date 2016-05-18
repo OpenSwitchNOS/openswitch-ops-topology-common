@@ -15,7 +15,7 @@ def create_vlan_interface(node, vlan_id, ip_address):
     vlan_id -- VLAN ID for interface to be configured
     ip_address -- IP address to configure on interface
     """
-    
+
     with node.libs.vtysh.ConfigVlan(vlan_id) as ctx:
         ctx.no_shutdown()
 

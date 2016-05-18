@@ -3,7 +3,7 @@
 """ Test suite for the SystemD Service Management module """
 
 import pytest  # noqa
-from topology_common.service import get_pid, is_running
+from topology_common.ops.system.service import get_pid, is_running
 
 
 def systemctl_status_cmd(cmd, shell="bash"):
