@@ -84,5 +84,5 @@ def test_get_pid():
 
     Uses the stub systemctl_show_pid_cmd defined above
     """
-    assert get_pid(systemctl_show_pid_cmd, "ops-test") == 1790, \
+    assert get_pid(systemctl_show_pid_cmd, "ops-test") == 179, \
         "Did not return expected PID"
